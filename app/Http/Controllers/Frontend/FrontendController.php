@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Models\Cart;
 use App\Models\Slot;
+use App\Models\Order;
 use App\Models\Service;
 use App\Models\Technician;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class FrontendController extends Controller
             $serv = $service->where('slug',$slug)->first();
             $serv_id = $serv->id;
             $slot = Slot::where('service_id',$serv_id)->get();
-            $technician = Technician::where('service_id',$serv_id)->get();
+            $technician = Technician::where('service_id',$serv_id)->where('verified','1')->get();
             
             return view('frontend.viewService',compact('service','serv','slot','technician'));
         }
@@ -46,11 +47,35 @@ class FrontendController extends Controller
         $slot = $request->input('slot');
         $technician = $request->input('technician');
 
+        if(!$technician)
+        {
+            // return redirect('/')->with('status','Technician Not Selected');
+            $random = Technician::all()->random(1);
+            //dd($random);
+            $check = BookedTechnician::whereDate('date','=',$fdate)
+                                ->where('slot', '=', $slot)
+                                ->where('technician', '=', $random[0]->id)
+                                ->get();
+            while($check->count()>0)
+            {
+                $random = Technician::all()->random(1);
+                $check = BookedTechnician::whereDate('date','=',$fdate)
+                                    ->where('slot', '=', $slot)
+                                    ->where('technician', '=', $random[0]->id)
+                                    ->get();
+            }
+            $technician = $random[0]->id;
 
-        $check = BookedTechnician::whereDate('date','=',$fdate)
+        }
+        else{
+            $check = BookedTechnician::whereDate('date','=',$fdate)
                                 ->where('slot', '=', $slot)
                                 ->where('technician', '=', $technician)
                                 ->get();
+
+        }
+
+        
 
         
 
@@ -63,6 +88,7 @@ class FrontendController extends Controller
             {
                 
                 return redirect('/')->with('status','Technician Not Availabe');
+                    
             }
             else
             {
@@ -103,4 +129,48 @@ class FrontendController extends Controller
         
     }
 
+    public function customer_profile()
+    {
+
+        $items = Order::where('user_id',Auth::id())->get();
+        return view('frontend.customer',compact('items'));
+    }
+
+    public function searchProduct(Request $request)
+    {
+        $product = $request->search;
+
+        if($product != "")
+        {
+            $item = Service::where("name","LIKE","%$product%")->first();
+            if($item){
+                return redirect('service/'.$item->slug);
+            }
+            else{
+                return redirect()->back()->with("status","No products matched with search");
+            }
+        }
+        else{
+            return redirect()->back();
+        } 
+    }
+
+    public function Emergencybook(Request $request)
+    {
+        // return redirect('/')->with('status','Technician Not Selected');
+        $random = Technician::all()->random(1);
+        //dd($random);
+        $check = BookedTechnician::where('technician', '=', $random[0]->id)
+                            ->get();
+
+        while($check->count()>0)
+        {
+            $random = Technician::all()->random(1);
+            $check = BookedTechnician::where('technician', '=', $random[0]->id)
+                                ->get();
+        }
+        $technician = $random[0]->id;
+
+        dd($technician);
+    }
 }

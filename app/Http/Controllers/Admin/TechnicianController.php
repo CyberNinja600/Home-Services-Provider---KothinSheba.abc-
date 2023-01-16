@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\User;
 use App\Models\Technician;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -21,6 +22,14 @@ class TechnicianController extends Controller
         $technician = Technician::find($id);
         $technician->verified = '1';
         $technician->update();
+
+        $user = new User();
+        $user->name = $technician->name;
+        $user->email = $technician->email;
+        $user->password = $technician->password;
+        $user->role_as = '2';
+
+        $user->save();
 
         return redirect('/dashboard')->with('status','Technician Verified');
     }
